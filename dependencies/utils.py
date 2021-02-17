@@ -1,0 +1,1 @@
+# meter todas las funciones xra importarlas
