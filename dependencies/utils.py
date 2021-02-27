@@ -2,6 +2,8 @@
 from scipy.io import loadmat, savemat
 import pandas as pd
 from scipy import stats
+import matplotlib.pyplot as plt
+import numpy as np
 
 def file2df(file):
     data = loadmat(file)
@@ -30,3 +32,22 @@ def create_sequence(X, y, time_steps=1, step=1):
         Xs.append(v)
         ys.append(stats.mode(labels)[0][0])
     return np.array(Xs), np.array(ys).reshape(-1, 1)
+
+def grapher(history):
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('./Output/model_accuracy.png')
+    plt.close()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('./Output/model_loss.png')
+
