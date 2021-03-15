@@ -1,0 +1,4 @@
+2021-03-15 20:56:16;INFO;Model sucessfully preprocessed
+2021-03-15 20:57:01;INFO;Model evaluation results: 95.09% acc 14.54% loss
+2021-03-15 20:58:11;INFO;Final model sucessfully trained
+2021-03-15 20:58:11;INFO;Final model sucessfully saved: ./Output_2021-03-15 20:56:09/finalized_model.h5

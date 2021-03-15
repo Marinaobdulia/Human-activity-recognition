@@ -5,8 +5,21 @@ import numpy as np
 import tensorflow as tf
 import keras
 import sys
+from datetime import datetime
+import os
+import os.path
+import argparse
+import logging
 
-def preprocessing(file):
+
+def is_valid_file(parser, arg):
+    if not os.path.exists(arg):
+        parser.error("The file %s does not exist!" % arg)
+    else:
+        return str(arg)  # return filename string
+
+
+def preprocessing(file, output):
     df = utils.file2df(file)
     # create sequences
     Xs, ys = utils.create_sequence(
@@ -25,24 +38,19 @@ def preprocessing(file):
     X_test, X_val, y_test, y_val =  train_test_split(X_test0, y_test0, test_size = 0.5)
     
     # Save X_train, X_test, X_val
-    np.save('./Output/X_train.npy', X_train)
-    np.save('./Output/y_train.npy', y_train)
-
-    np.save('./Output/X_test.npy', X_test)
-    np.save('./Output/y_test.npy', y_test)
-
-    np.save('./Output/X_val.npy', X_val)
-    np.save('./Output/y_val.npy', y_val)
-
+    for data, name in [[X_train, 'X_train'], [y_train, 'y_train'], 
+    [X_test, 'X_test'], [y_test, 'y_test'],
+    [X_val, 'X_val'], [y_val, 'y_val']]:
+        np.save(output+'/'+name, data)    
     # scale
     #scaler = RobustScaler()
     #scaler = scaler.fit(X_train)
     #X_train = scaler.transform(X_train)
     #X_test = scaler.transform(X_test)
 
-    return X_train, X_test, X_val, y_train, y_test, y_val
+    return X_train, X_test, X_val, y_train, y_test, y_val, Xs, ys
 
-def model_train(X_train, y_train, graphing = 'Yes'):
+def model_train(X_train, y_train, output, graphing = 'Yes'):
     model = keras.Sequential()
     model.add(
         keras.layers.Bidirectional(
@@ -70,27 +78,36 @@ def model_train(X_train, y_train, graphing = 'Yes'):
     )
 
     if graphing == 'Yes':
-        graph = utils.grapher(history)
+        graph = utils.grapher(history, output)
 
-    return model
-
-
-def model_test(model, X_test, y_test):
-    return model.evaluate(X_test, y_test)
-
+    return model, history
 
 if __name__ == '__main__':
-    file = 'HAR_database.mat'
-    # file = sys.arg[1]
-    #preprocessing
-    X_train, X_test, X_val, y_train, y_test, y_val = preprocessing(file)
-    
-    #model train
-    model = model_train(X_train, y_train)
-    
-    #model test
-    loss, acc = model_test(model, X_test, y_test)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", dest="filename", required=True,
+                    help="input file with two matrices", metavar="FILE",
+                    type=lambda x: is_valid_file(parser, x))
+    args = parser.parse_args()
+    file = args.filename
 
-    #model save
-    filename = './Output/finalized_model.h5'
+    # en el parser se puede meter tb el nivel de logging
+
+    output = './Output_'+str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    os.mkdir(output)
+    
+    logging.basicConfig(filename=output+'/main.log', filemode='w', level=logging.INFO,
+    format="%(asctime)s;%(levelname)s;%(message)s",
+    datefmt='%Y-%m-%d %H:%M:%S')
+
+    X_train, X_test, X_val, y_train, y_test, y_val, Xs, ys = preprocessing(file,output)
+    logging.info('Model sucessfully preprocessed')
+    model, history = model_train(X_train, y_train, output)
+    loss, acc = model.evaluate(X_test, y_test)
+    logging.info(f'Model evaluation results: {acc*100:.2f}% acc {loss*100:.2f}% loss')
+
+    model, history = model_train(Xs, ys, output)
+    logging.info(f'Final model sucessfully trained')
+
+    filename = output+'/finalized_model.h5'
     model.save(filename)
+    logging.info(f'Final model sucessfully saved: {filename}')
